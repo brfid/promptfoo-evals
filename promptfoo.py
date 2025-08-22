@@ -1,10 +1,23 @@
 #!/usr/bin/env python3
 """
-Multi-model CLI probe for concise technical documentation output.
+Multi-model CLI query tool for Hugging Face Inference Providers.
 
-Usage:
-  python promptfoo.py -p "Describe the /v1/ingest endpoint..."
-  HF_TOKEN must be set in the environment.
+This script lets you send the same prompt to multiple large language models
+hosted on Hugging Face Inference Providers and compare their outputs.
+
+Workflow:
+    1. Parse command-line arguments including prompt, model list, and options.
+    2. Load the Hugging Face API token from ~/.env (HF_TOKEN).
+    3. Create an InferenceClient connected to the chosen provider.
+    4. Dispatch the prompt concurrently to all selected models.
+    5. Collect responses, measure latency, and print results to the terminal.
+    6. Optionally save results to a file if the --output flag is provided.
+
+Environment:
+    Requires HF_TOKEN to be defined in ~/.env or environment variables.
+
+Usage example:
+    python promptfoo.py -p "Summarize the purpose of OAuth2 in 2 sentences."
 """
 
 import argparse
@@ -12,20 +25,26 @@ import concurrent.futures as cf
 import os
 import sys
 import time
-from typing import Dict, List
 
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
 
-DEFAULT_MODELS: List[str] = [
-    "meta-llama/Llama-3.1-70B-Instruct",
-    "Qwen/Qwen2.5-72B-Instruct",
-    "mistralai/Mixtral-8x22B-Instruct-v0.1",
-    "01-ai/Yi-1.5-34B-Chat",
+DEFAULT_MODELS = [
+    "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+    "Qwen/Qwen3-30B-A3B-Instruct-2507deepseek-ai/DeepSeek-V3.1",
+    "Mistral-Nemo-Instruct-2407",
+    "google/gemma-3-27b-it",
+    #   "CodeGemma-7b-it",  # for coding and code writing
 ]
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args():
+    """Parse command-line arguments.
+
+    Returns:
+        argparse.Namespace: Parsed arguments including prompt, models, temperature,
+            max_tokens, provider, and optional output filename.
+    """
     parser = argparse.ArgumentParser(
         description="Query multiple HF models with one prompt."
     )
@@ -41,6 +60,7 @@ def parse_args() -> argparse.Namespace:
         help="Comma-separated list of Hub model IDs.",
     )
     parser.add_argument(
+        "-t",
         "--temperature",
         type=float,
         default=0.2,
@@ -67,8 +87,18 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def make_client(provider: str) -> InferenceClient:
-    # Load ~/.env into environment
+def make_client(provider):
+    """Create an InferenceClient for Hugging Face Inference Providers.
+
+    Args:
+        provider (str): Provider routing option (e.g., "auto", "groq", "together").
+
+    Returns:
+        InferenceClient: Initialized client for sending inference requests.
+
+    Raises:
+        SystemExit: If HF_TOKEN is not set in environment or ~/.env file.
+    """
     load_dotenv(os.path.expanduser("~/.env"))
 
     api_key = os.environ.get("HF_TOKEN")
@@ -78,13 +108,22 @@ def make_client(provider: str) -> InferenceClient:
     return InferenceClient(api_key=api_key, provider=provider)
 
 
-def ask_one(
-    client: InferenceClient,
-    model: str,
-    prompt: str,
-    max_tokens: int,
-    temperature: float,
-) -> Dict[str, str]:
+def ask_one(client, model, prompt, max_tokens, temperature):
+    """Send one prompt to a model and collect its response.
+
+    Args:
+        client (InferenceClient): Hugging Face inference client.
+        model (str): Model identifier on Hugging Face Hub.
+        prompt (str): Prompt string to send.
+        max_tokens (int): Maximum tokens in the completion.
+        temperature (float): Sampling temperature.
+
+    Returns:
+        dict: Keys:
+            - model (str): Model ID.
+            - latency (str): Time taken in seconds.
+            - output (str): Model response content OR detailed error text on failure.
+    """
     t0 = time.time()
     try:
         resp = client.chat.completions.create(
@@ -96,12 +135,28 @@ def ask_one(
         content = resp.choices[0].message.content.strip()
         latency = f"{time.time() - t0:.3f}s"
         return {"model": model, "latency": latency, "output": content}
-    except Exception as exc:  # keep simple for CLI use
+    except Exception as exc:
         latency = f"{time.time() - t0:.3f}s"
-        return {"model": model, "latency": latency, "error": str(exc)}
+        # Put failure info where output normally appears
+        cls = exc.__class__.__name__
+        msg = str(exc) or "no message from provider"
+        hint = (
+            "Possible causes: model not served by current provider, "
+            "cold start disabled, rate limit, or insufficient credits."
+        )
+        error_text = f"[ERROR] {cls}: {msg}\n{hint}"
+        return {"model": model, "latency": latency, "output": error_text}
 
 
-def main() -> None:
+def main():
+    """Main entry point.
+
+    Parses arguments, sends the prompt to multiple models concurrently,
+    prints results to the terminal, and optionally writes them to a file.
+
+    Raises:
+        SystemExit: If no prompt is provided or output file cannot be written.
+    """
     args = parse_args()
 
     if not args.prompt:
@@ -133,17 +188,13 @@ def main() -> None:
         lines.append(f"MODEL: {r['model']}")
         lines.append(f"LATENCY: {r['latency']}")
         lines.append("-" * 72)
-        if "output" in r:
-            lines.append(r["output"])
-        else:
-            lines.append(f"error: {r['error']}")
+        lines.append(r["output"])
+        lines.append("")
     lines.append("=" * 72)
     rendered = "\n".join(lines)
 
-    # Print to terminal
     print(rendered)
 
-    # Optional file write
     if args.output:
         try:
             with open(args.output, "w", encoding="utf-8") as f:
