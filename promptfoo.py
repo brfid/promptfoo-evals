@@ -3,7 +3,7 @@
 Multi-model CLI probe for concise technical documentation output.
 
 Usage:
-  python llm_probe.py -p "Describe the /v1/ingest endpoint..."
+  python promptfoo.py -p "Describe the /v1/ingest endpoint..."
   HF_TOKEN must be set in the environment.
 """
 
@@ -14,8 +14,8 @@ import sys
 import time
 from typing import Dict, List
 
+from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
-
 
 DEFAULT_MODELS: List[str] = [
     "meta-llama/Llama-3.1-70B-Instruct",
@@ -23,14 +23,6 @@ DEFAULT_MODELS: List[str] = [
     "mistralai/Mixtral-8x22B-Instruct-v0.1",
     "01-ai/Yi-1.5-34B-Chat",
 ]
-
-DEFAULT_PROMPT = (
-    "Write a concise software-technical spec for a REST endpoint "
-    "`POST /v1/ingest` that accepts JSON with fields: "
-    "`source_id: string`, `events: array<object>`. Include sections for: "
-    "Purpose, Request schema, Response schema, Authentication, Error codes, "
-    "and one curl example. Keep it under 180 words. Use tight language."
-)
 
 
 def parse_args() -> argparse.Namespace:
@@ -40,8 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-p",
         "--prompt",
-        default=DEFAULT_PROMPT,
-        help="Prompt string to send to each model.",
+        help="Prompt string to send to each model. Required.",
     )
     parser.add_argument(
         "-m",
@@ -67,18 +58,22 @@ def parse_args() -> argparse.Namespace:
         help='Provider routing (e.g., "auto", "groq", "together").',
     )
     parser.add_argument(
-        "--timeout",
-        type=float,
-        default=90.0,
-        help="Per-call timeout in seconds.",
+        "-o",
+        "--output",
+        nargs="?",
+        const="llm_probe_output.txt",
+        help="Write results to file. Optional filename, defaults to llm_probe_output.txt.",
     )
     return parser.parse_args()
 
 
 def make_client(provider: str) -> InferenceClient:
+    # Load ~/.env into environment
+    load_dotenv(os.path.expanduser("~/.env"))
+
     api_key = os.environ.get("HF_TOKEN")
     if not api_key:
-        print("error: HF_TOKEN not set in environment", file=sys.stderr)
+        print("error: HF_TOKEN not set in ~/.env or environment", file=sys.stderr)
         sys.exit(2)
     return InferenceClient(api_key=api_key, provider=provider)
 
@@ -89,7 +84,6 @@ def ask_one(
     prompt: str,
     max_tokens: int,
     temperature: float,
-    timeout: float,
 ) -> Dict[str, str]:
     t0 = time.time()
     try:
@@ -98,7 +92,6 @@ def ask_one(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=max_tokens,
             temperature=temperature,
-            timeout=timeout,
         )
         content = resp.choices[0].message.content.strip()
         latency = f"{time.time() - t0:.3f}s"
@@ -110,6 +103,11 @@ def ask_one(
 
 def main() -> None:
     args = parse_args()
+
+    if not args.prompt:
+        print("error: --prompt is required", file=sys.stderr)
+        sys.exit(2)
+
     models = [m.strip() for m in args.models.split(",") if m.strip()]
     client = make_client(provider=args.provider)
 
@@ -124,23 +122,35 @@ def main() -> None:
                     args.prompt,
                     args.max_tokens,
                     args.temperature,
-                    args.timeout,
                 )
             )
         results = [w.result() for w in work]
 
-    # Plain terminal output
+    # Build output once
+    lines = []
     for r in results:
-        print("=" * 80)
-        print(f"MODEL: {r['model']}")
-        print(f"LATENCY: {r['latency']}")
+        lines.append("=" * 72)
+        lines.append(f"MODEL: {r['model']}")
+        lines.append(f"LATENCY: {r['latency']}")
+        lines.append("-" * 72)
         if "output" in r:
-            print("-" * 80)
-            print(r["output"])
+            lines.append(r["output"])
         else:
-            print("-" * 80)
-            print(f"error: {r['error']}")
-    print("=" * 80)
+            lines.append(f"error: {r['error']}")
+    lines.append("=" * 72)
+    rendered = "\n".join(lines)
+
+    # Print to terminal
+    print(rendered)
+
+    # Optional file write
+    if args.output:
+        try:
+            with open(args.output, "w", encoding="utf-8") as f:
+                f.write(rendered + "\n")
+        except OSError as exc:
+            print(f"error: failed to write output file: {exc}", file=sys.stderr)
+            sys.exit(2)
 
 
 if __name__ == "__main__":

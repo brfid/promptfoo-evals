@@ -1,0 +1,115 @@
+========================================================================
+MODEL: meta-llama/Llama-3.1-70B-Instruct
+LATENCY: 2.678s
+------------------------------------------------------------------------
+Adding header authorization to a CURL request is a common task when interacting with APIs that require authentication. Here are user-centric instructions to help you achieve this:
+
+**Step 1: Understand the Basics**
+
+Before we dive into the instructions, make sure you have a basic understanding of:
+
+* What a CURL request is (a command-line tool for transferring data to and from a web server)
+* What an API is (a set of defined rules that enable different applications to communicate with each other)
+* What authentication is (the process of verifying the identity of a user or system)
+
+**Step 2: Gather Required Information**
+
+To add header authorization to your CURL request, you'll need the following information:
+
+* The API endpoint URL (the address of the API you want to interact with)
+* The authentication token or credentials (e.g., username, password, API key, or access token)
+* The type of authentication required (e.g., Basic Auth, Bearer Token, or OAuth)
+
+**Step 3: Construct the CURL Request**
+
+Open your terminal or command prompt and type the following command:
+```bash
+curl -X GET \
+  https://api.example.com/endpoint \
+  -H 'Authorization: <AUTH_TYPE> <AUTH_TOKEN>'
+```
+Replace:
+
+* `https://api.example.com/endpoint` with the API endpoint URL
+* `<AUTH_TYPE>` with the type of authentication required (e.g., `Basic`, `Bearer`, or `OAuth`)
+* `<AUTH_TOKEN>` with the authentication token or credentials
+
+**Examples:**
+
+* Basic Auth: `curl -X GET https://api.example.com/endpoint -H 'Authorization: Basic <base64 encoded username:password>'`
+* Bearer Token: `curl -X GET https://api.example.com/endpoint -H 'Authorization: Bearer <access_token>'`
+* OAuth: `curl -X GET https://api.example.com/endpoint -H 'Authorization: OAuth <access_token>'`
+
+**Step
+========================================================================
+MODEL: Qwen/Qwen2.5-72B-Instruct
+LATENCY: 6.683s
+------------------------------------------------------------------------
+Certainly! Adding header authorization to a `curl` request is a common task when you need to authenticate your requests to an API or web service. Here’s a step-by-step guide on how to do it:
+
+### Step 1: Identify the Authorization Type
+First, determine the type of authorization required by the API. Common types include:
+- **Basic Authentication**: Uses a username and password.
+- **Bearer Token**: Uses a token (often obtained from an authentication service).
+- **API Key**: Uses a key that is often passed in the header.
+
+### Step 2: Prepare the Authorization Value
+Depending on the type of authorization, prepare the value accordingly:
+- **Basic Authentication**:
+  - Combine your username and password into a single string separated by a colon, e.g., `username:password`.
+  - Encode this string using Base64.
+  - The authorization header will look like: `Authorization: Basic <base64_encoded_string>`.
+
+- **Bearer Token**:
+  - Use the token directly.
+  - The authorization header will look like: `Authorization: Bearer <token>`.
+
+- **API Key**:
+  - Use the API key directly.
+  - The authorization header will look like: `Authorization: ApiKey <api_key>`.
+
+### Step 3: Construct the `curl` Command
+Now, construct the `curl` command with the appropriate authorization header.
+
+#### Example 1: Basic Authentication
+```sh
+curl -u username:password https://example.com/api/resource
+```
+Alternatively, you can use the `-H` option to add the header manually:
+```sh
+curl -H "Authorization: Basic $(echo -n 'username:password' | base64)" https://example.com/api/resource
+```
+
+#### Example 2: Bearer Token
+```sh
+curl -H "Authorization: Bearer <your_token>" https://example.com/api/resource
+```
+
+#### Example 3: API Key
+========================================================================
+MODEL: mistralai/Mixtral-8x22B-Instruct-v0.1
+LATENCY: 5.554s
+------------------------------------------------------------------------
+1. Open your terminal or command prompt.
+
+2. Identify the API endpoint you want to send the CURL request to. This is usually a URL provided by the API documentation.
+
+3. Determine the type of authorization required by the API. This is usually found in the API documentation as well. Common types include "Basic", "Bearer", and "Token".
+
+4. Obtain your authorization token or credentials. This could be a token you received after logging in, or your username and password for Basic authorization.
+
+5. For Basic authorization, you'll need to encode your username and password. You can do this in the terminal with the following command: `echo -n 'username:password' | base64` (replace 'username:password' with your actual username and password). This will output an encoded string.
+
+6. Now, you can construct your CURL command. Start with the basic structure: `curl -X <HTTP_METHOD> <API_ENDPOINT>`. Replace `<HTTP_METHOD>` with the HTTP method you want to use (like GET, POST, PUT, DELETE), and replace `<API_ENDPOINT>` with the API endpoint you identified in step 2.
+
+7. Add the header authorization to your CURL command. If you're using Basic authorization, use the encoded string from step 5. The header should look like this: `-H 'Authorization: Basic <ENCODED_STRING>'`. If you're using a different type of authorization, replace 'Basic' with the appropriate type (like 'Bearer' or 'Token').
+
+8. Your final CURL command might look something like this: `curl -X GET -H 'Authorization: Bearer <TOKEN>' <API_ENDPOINT>`.
+
+9. Press
+========================================================================
+MODEL: 01-ai/Yi-1.5-34B-Chat
+LATENCY: 0.100s
+------------------------------------------------------------------------
+error: 
+========================================================================
