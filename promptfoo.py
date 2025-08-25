@@ -31,10 +31,11 @@ from huggingface_hub import InferenceClient
 
 DEFAULT_MODELS = [
     "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    "Qwen/Qwen3-30B-A3B-Instruct-2507deepseek-ai/DeepSeek-V3.1",
+    "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "deepseek-ai/DeepSeek-V3.1",
     "Mistral-Nemo-Instruct-2407",
     "google/gemma-3-27b-it",
-    #   "CodeGemma-7b-it",  # for coding and code writing
+    "CodeGemma-7b-it",
 ]
 
 
