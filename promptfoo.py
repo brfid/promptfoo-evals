@@ -30,12 +30,12 @@ from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
 
 DEFAULT_MODELS = [
-    "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    "Qwen/Qwen3-30B-A3B-Instruct-2507",
     "deepseek-ai/DeepSeek-V3.1",
-    "Mistral-Nemo-Instruct-2407",
+    "google/CodeGemma-7b-it",
     "google/gemma-3-27b-it",
-    "CodeGemma-7b-it",
+    "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+    "mistralai/Mistral-Nemo-Instruct-2407",
+    "Qwen/Qwen3-30B-A3B-Instruct-2507",
 ]
 
 
