@@ -31,7 +31,6 @@ from huggingface_hub import InferenceClient
 
 DEFAULT_MODELS = [
     "deepseek-ai/DeepSeek-V3.1",
-    "google/CodeGemma-7b-it",
     "google/gemma-3-27b-it",
     "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
     "mistralai/Mistral-Nemo-Instruct-2407",
